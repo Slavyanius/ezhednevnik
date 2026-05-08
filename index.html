@@ -11,52 +11,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600&display=swap');
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-            background: #f8fafc;
-        }
-        .tail-container {
-            max-width: 428px;
-            margin: 0 auto;
-            background: white;
-            min-height: 100dvh;
-        }
-        .entry-card {
-            position: relative;
-            overflow: hidden;
-            border-radius: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .entry-content {
-            background: white;
-            transition: transform 0.3s ease;
-        }
-        .delete-btn {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 85px;
-            background: #ef4444;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-        }
-        .entry-card.swiped .entry-content {
-            transform: translateX(-85px);
-        }
-        .entry-card.swiped .delete-btn {
-            transform: translateX(0);
-        }
-        #voice-btn.recording {
-            background: #ef4444 !important;
-            transform: scale(1.08);
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: #f8fafc; }
+        .tail-container { max-width: 428px; margin: 0 auto; background: white; min-height: 100dvh; }
+        .entry-card { position: relative; overflow: hidden; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .entry-content { background: white; transition: transform 0.3s ease; }
+        .delete-btn { position: absolute; right: 0; top: 0; bottom: 0; width: 85px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; transform: translateX(100%); transition: transform 0.3s ease; }
+        .entry-card.swiped .entry-content { transform: translateX(-85px); }
+        .entry-card.swiped .delete-btn { transform: translateX(0); }
+        #voice-btn.recording { background: #ef4444 !important; transform: scale(1.08); }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen bg-slate-100">
@@ -139,38 +101,19 @@
             renderEntries();
         }
 
-        function saveEntries() {
-            localStorage.setItem('kinesiologEntries', JSON.stringify(entries));
-        }
+        function saveEntries() { localStorage.setItem('kinesiologEntries', JSON.stringify(entries)); }
 
         function renderEntries() {
             const container = document.getElementById('entries-list');
             container.innerHTML = '';
             const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
-            let currentDate = '';
+            let curDate = '';
             sorted.forEach(entry => {
-                if (entry.date !== currentDate) {
-                    currentDate = entry.date;
+                if (entry.date !== curDate) {
+                    curDate = entry.date;
                     container.innerHTML += `<div class="px-2 mt-6 mb-2 text-xs font-semibold text-slate-500">${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}</div>`;
                 }
-                const html = `
-                    <div class="entry-card mb-3" data-id="${entry.id}">
-                        <div class="delete-btn" onclick="deleteEntry('${entry.id}')"><i class="fa-solid fa-trash"></i></div>
-                        <div class="entry-content flex" ontouchstart="startSwipe(event)" ontouchmove="moveSwipe(event)" ontouchend="endSwipe(event)">
-                            <div class="${entry.isPersonal ? 'bg-slate-400' : 'bg-blue-500'} w-1.5 rounded-l-3xl"></div>
-                            <div onclick="editEntry('${entry.id}')" class="flex-1 px-5 py-4 cursor-pointer">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex-1 pr-4">
-                                        ${entry.isPersonal ? 
-                                            `<div class="font-medium">${entry.description || 'Личная запись'}</div>` :
-                                            `<div class="font-medium">${entry.name}</div><div class="text-sm text-slate-500">${entry.phone}</div>`
-                                        }
-                                    </div>
-                                    <div class="font-semibold text-xl text-slate-700">${entry.time}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
+                const html = `<div class="entry-card mb-3" data-id="${entry.id}"><div class="delete-btn" onclick="deleteEntry('${entry.id}')"><i class="fa-solid fa-trash"></i></div><div class="entry-content flex" ontouchstart="startSwipe(event)" ontouchmove="moveSwipe(event)" ontouchend="endSwipe(event)"><div class="${entry.isPersonal ? 'bg-slate-400' : 'bg-blue-500'} w-1.5 rounded-l-3xl"></div><div onclick="editEntry('${entry.id}')" class="flex-1 px-5 py-4 cursor-pointer"><div class="flex justify-between items-start"><div class="flex-1 pr-4">${entry.isPersonal ? `<div class="font-medium">${entry.description || 'Личная запись'}</div>` : `<div class="font-medium">${entry.name}</div><div class="text-sm text-slate-500">${entry.phone}</div>`}</div><div class="font-semibold text-xl text-slate-700">${entry.time}</div></div></div></div></div>`;
                 container.innerHTML += html;
             });
         }
@@ -178,14 +121,10 @@
         let startX = 0, currentCard = null;
         function startSwipe(e) { currentCard = e.currentTarget.parentElement; startX = e.touches[0].clientX; currentCard.classList.remove('swiped'); }
         function moveSwipe(e) { if (currentCard) { const diff = startX - e.touches[0].clientX; if (diff > 40) currentCard.classList.add('swiped'); } }
-        function endSwipe(e) { if (currentCard) { const diff = startX - e.changedTouches[0].clientX; diff > 100 ? currentCard.classList.add('swiped') : currentCard.classList.remove('swiped'); } }
+        function endSwipe(e) { if (currentCard) { const diff = startX - e.changedTouches[0].clientX; if (diff > 100) currentCard.classList.add('swiped'); else currentCard.classList.remove('swiped'); } }
 
         function deleteEntry(id) {
-            if (confirm('Удалить запись?')) {
-                entries = entries.filter(e => e.id !== id);
-                saveEntries();
-                renderEntries();
-            }
+            if (confirm('Удалить запись?')) { entries = entries.filter(e => e.id !== id); saveEntries(); renderEntries(); }
         }
 
         function showAddModal() {
@@ -199,13 +138,11 @@
             document.getElementById('entry-date').value = today;
             document.getElementById('entry-time').value = '10:00';
             togglePersonal();
-            document.getElementById('add-modal').classList.remove('hidden');
-            document.getElementById('add-modal').classList.add('flex');
+            document.getElementById('add-modal').classList.remove('hidden'); document.getElementById('add-modal').classList.add('flex');
         }
 
         function hideAddModal() {
-            document.getElementById('add-modal').classList.add('hidden');
-            document.getElementById('add-modal').classList.remove('flex');
+            document.getElementById('add-modal').classList.add('hidden'); document.getElementById('add-modal').classList.remove('flex');
         }
 
         function togglePersonal() {
@@ -219,23 +156,16 @@
             const date = document.getElementById('entry-date').value;
             const time = document.getElementById('entry-time').value;
             if (!date || !time) return alert('Укажите дату и время');
-            const entry = {
-                id: currentEditId || Date.now().toString(36),
-                date: date,
-                time: time,
-                isPersonal: isPersonal,
+            const entry = { id: currentEditId || Date.now().toString(36), date, time, isPersonal,
                 name: isPersonal ? '' : document.getElementById('client-name').value.trim(),
                 phone: isPersonal ? '' : document.getElementById('client-phone').value.trim(),
-                description: isPersonal ? document.getElementById('personal-desc').value.trim() : ''
-            };
+                description: isPersonal ? document.getElementById('personal-desc').value.trim() : '' };
             if (!isPersonal && !entry.name) return alert('Укажите ФИО клиента');
             if (currentEditId) {
                 const idx = entries.findIndex(e => e.id === currentEditId);
                 if (idx !== -1) entries[idx] = entry;
             } else entries.push(entry);
-            saveEntries();
-            renderEntries();
-            hideAddModal();
+            saveEntries(); renderEntries(); hideAddModal();
         }
 
         function editEntry(id) {
@@ -252,8 +182,7 @@
                 document.getElementById('client-phone').value = entry.phone;
             }
             togglePersonal();
-            document.getElementById('add-modal').classList.remove('hidden');
-            document.getElementById('add-modal').classList.add('flex');
+            document.getElementById('add-modal').classList.remove('hidden'); document.getElementById('add-modal').classList.add('flex');
         }
 
         // ==================== HOLD-TO-TALK ====================
@@ -303,7 +232,7 @@
             return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
 
-        // ==================== ИСПРАВЛЕННЫЙ ПАРСЕР ====================
+        // ==================== УЛУЧШЕННЫЙ ПАРСЕР ВРЕМЕНИ (словами + цифрами) ====================
         function parseVoiceInput(original) {
             const lower = original.toLowerCase().trim();
             const status = document.getElementById('voice-status');
@@ -313,42 +242,64 @@
             document.getElementById('is-personal').checked = isPersonal;
             togglePersonal();
 
-            // === ДАТА ===
+            // === ДАТА (оставляем как было — работает) ===
             let dateValue = new Date().toISOString().split('T')[0];
-
-            if (lower.includes('завтра')) {
-                const d = new Date(); d.setDate(d.getDate() + 1); dateValue = d.toISOString().split('T')[0];
-            } else if (lower.includes('послезавтра')) {
-                const d = new Date(); d.setDate(d.getDate() + 2); dateValue = d.toISOString().split('T')[0];
-            } else {
-                // "25 мая", "15 июня" и т.д.
+            if (lower.includes('завтра')) { const d = new Date(); d.setDate(d.getDate()+1); dateValue = d.toISOString().split('T')[0]; }
+            else if (lower.includes('послезавтра')) { const d = new Date(); d.setDate(d.getDate()+2); dateValue = d.toISOString().split('T')[0]; }
+            else {
                 const dateMatch = lower.match(/(\d{1,2})\s*(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/);
                 if (dateMatch) {
-                    const day = dateMatch[1].padStart(2, '0');
+                    const day = dateMatch[1].padStart(2,'0');
                     const months = {января:'01',февраля:'02',марта:'03',апреля:'04',мая:'05',июня:'06',июля:'07',августа:'08',сентября:'09',октября:'10',ноября:'11',декабря:'12'};
-                    const month = months[dateMatch[2]];
-                    if (month) dateValue = `${new Date().getFullYear()}-${month}-${day}`;
+                    dateValue = `${new Date().getFullYear()}-${months[dateMatch[2]]}-${day}`;
                 }
             }
             document.getElementById('entry-date').value = dateValue;
 
-            // === ВРЕМЯ ===
-            const timeMatch = lower.match(/(?:в|на)\s*(\d{1,2})[\s.:]?(\d{0,2})?/);
-            if (timeMatch) {
-                let h = timeMatch[1].padStart(2, '0');
-                let m = timeMatch[2] ? timeMatch[2].padStart(2, '0') : '00';
-                if (parseInt(h) > 23) h = '12';
-                document.getElementById('entry-time').value = `${h}:${m}`;
-            }
+            // === ВРЕМЯ — НОВЫЙ УЛУЧШЕННЫЙ ПАРСЕР ===
+            let timeValue = '10:00';
 
-            // === ОЧИСТКА ДЛЯ ИМЕНИ/ОПИСАНИЯ ===
+            // 1. Цифры
+            let timeMatch = lower.match(/(?:в|на)\s*(\d{1,2})[\s.:]?(\d{0,2})?/);
+            if (timeMatch) {
+                let h = parseInt(timeMatch[1]);
+                let m = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+                if (h > 23) h = 12;
+                timeValue = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+            } 
+            // 2. Словами (шестнадцать тридцать, четырнадцать ноль ноль и т.д.)
+            else {
+                const hourWords = {
+                    'один':1,'два':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,'девять':9,
+                    'десять':10,'одиннадцать':11,'двенадцать':12,'тринадцать':13,'четырнадцать':14,
+                    'пятнадцать':15,'шестнадцать':16,'семнадцать':17,'восемнадцать':18,'девятнадцать':19,
+                    'двадцать':20,'двадцать один':21,'двадцать два':22,'двадцать три':23
+                };
+                const minWords = { 'ноль':0, 'ноль ноль':0, 'тридцать':30, 'пятнадцать':15, 'сорок пять':45 };
+
+                // ищем "в шестнадцать тридцать", "на десять", "четырнадцать ноль ноль" и т.д.
+                const spokenTime = lower.match(/(?:в|на)\s*([а-яё\s]+?)(?:\s+(ноль|ноль ноль|тридцать|пятнадцать|сорок пять))?/);
+                if (spokenTime) {
+                    const hourPart = spokenTime[1].trim();
+                    const minPart = spokenTime[2] || 'ноль';
+                    const h = hourWords[hourPart];
+                    const m = minWords[minPart] || 0;
+                    if (h !== undefined) {
+                        timeValue = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                    }
+                }
+            }
+            document.getElementById('entry-time').value = timeValue;
+
+            // === ОЧИСТКА ТЕКСТА ДЛЯ ФИО / ОПИСАНИЯ ===
             let clean = original
-                .replace(/(в|на)\s*\d{1,2}[:.\s]?\d{0,2}/gi, '')           // время
-                .replace(/\d{1,2}\s*(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/gi, '') // дата
+                .replace(/(в|на)\s*\d{1,2}[:.\s]?\d{0,2}/gi, '')                    // цифры время
+                .replace(/(в|на)\s*[а-яё\s]+?(ноль|тридцать|пятнадцать|сорок пять)?/gi, '') // слова время
+                .replace(/\d{1,2}\s*(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/gi, '')
                 .replace(/завтра|послезавтра/gi, '')
                 .replace(/телефон|номер/gi, '')
                 .replace(/личн|себе|мое|моя|личная/gi, '')
-                .replace(/\+?7?\s*\(?\d{3}\)?[\s\-.]*\d{3}[\s\-.]*\d{2}[\s\-.]*\d{2}/g, '') // телефон
+                .replace(/\+?7?\s*\(?\d{3}\)?[\s\-.]*\d{3}[\s\-.]*\d{2}[\s\-.]*\d{2}/g, '')
                 .trim();
 
             if (isPersonal) {
@@ -363,12 +314,11 @@
                     else if (!p.startsWith('+7')) p = '+7' + p;
                     document.getElementById('client-phone').value = p;
                 }
-                // ФИО
                 document.getElementById('client-name').value = capitalizeName(clean);
             }
 
             status.textContent = '✓ Поля заполнены';
-            setTimeout(() => status.textContent = '', 2000);
+            setTimeout(() => status.textContent = '', 1800);
         }
 
         window.onload = loadEntries;
