@@ -25,20 +25,19 @@
         .entry-card {
             position: relative;
             overflow: hidden;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .entry-content {
-            position: relative;
-            z-index: 2;
             background: white;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.3s ease;
         }
         .delete-btn {
             position: absolute;
             right: 0;
             top: 0;
             bottom: 0;
-            width: 80px;
+            width: 85px;
             background: #ef4444;
             color: white;
             display: flex;
@@ -46,10 +45,10 @@
             justify-content: center;
             font-weight: 600;
             transform: translateX(100%);
-            transition: transform 0.3s;
+            transition: transform 0.3s ease;
         }
         .entry-card.swiped .entry-content {
-            transform: translateX(-80px);
+            transform: translateX(-85px);
         }
         .entry-card.swiped .delete-btn {
             transform: translateX(0);
@@ -57,11 +56,11 @@
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen bg-slate-100">
-    <div class="tail-container w-full flex flex-col h-screen overflow-hidden shadow-2xl">
+    <div class="tail-container w-full flex flex-col h-screen overflow-hidden">
         <!-- Header -->
         <div class="bg-white border-b px-6 pt-12 pb-4 flex items-center justify-between sticky top-0 z-50">
             <div>
-                <h1 class="text-2xl font-semibold tracking-tighter text-slate-900">Ежедневник</h1>
+                <h1 class="text-2xl font-semibold tracking-tighter">Ежедневник</h1>
                 <p class="text-xs text-slate-500">Кинезиолог</p>
             </div>
             <button onclick="showAddModal()" 
@@ -71,62 +70,61 @@
         </div>
 
         <div class="flex-1 overflow-auto p-4" id="entries-list"></div>
-
-        <!-- Bottom Bar -->
-        <div class="h-14 bg-white border-t flex items-center justify-around text-slate-400">
-            <button class="flex flex-col items-center text-blue-600">
-                <i class="fa-solid fa-calendar-day text-xl"></i>
-                <span class="text-[10px] mt-0.5">Записи</span>
-            </button>
-        </div>
     </div>
 
-    <!-- Add/Edit Modal -->
+    <!-- Modal -->
     <div id="add-modal" class="hidden fixed inset-0 bg-black/60 flex items-end z-[100]">
-        <div class="bg-white w-full rounded-t-3xl max-h-[90vh] overflow-hidden">
-            <div class="px-6 py-4 border-b flex items-center justify-between">
-                <button onclick="hideAddModal()" class="text-blue-600 font-medium">Отмена</button>
+        <div class="bg-white w-full rounded-t-3xl max-h-[92vh] overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center">
+                <button onclick="hideAddModal()" class="text-blue-600 font-medium text-lg">Отмена</button>
                 <h2 class="font-semibold text-lg" id="modal-title">Новая запись</h2>
-                <button onclick="saveEntry()" class="text-blue-600 font-semibold">Готово</button>
+                <button onclick="saveEntry()" class="text-blue-600 font-semibold text-lg">Готово</button>
             </div>
-            <div class="p-6 overflow-auto" style="max-height: calc(90vh - 140px)">
-                <!-- Форма (оставлена как в первой версии) -->
+            <div class="p-6 overflow-auto" style="max-height: calc(92vh - 140px)">
                 <div class="flex items-center justify-between mb-8">
                     <div>
                         <div class="font-medium">Личная запись</div>
+                        <div class="text-sm text-slate-500">Без клиента</div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="is-personal" onchange="togglePersonal()" class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:bg-blue-500"></div>
+                        <div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:bg-blue-500"></div>
                     </label>
                 </div>
 
                 <div id="client-fields">
-                    <input id="client-name" type="text" class="w-full bg-slate-100 rounded-2xl px-5 py-4 mb-4" placeholder="ФИО клиента">
-                    <input id="client-phone" type="tel" class="w-full bg-slate-100 rounded-2xl px-5 py-4" placeholder="Телефон">
+                    <input id="client-name" type="text" class="w-full bg-slate-100 rounded-2xl px-5 py-4 mb-4 text-base" placeholder="ФИО клиента">
+                    <input id="client-phone" type="tel" class="w-full bg-slate-100 rounded-2xl px-5 py-4 text-base" placeholder="+7 (___) ___-__-__">
                 </div>
 
                 <div id="personal-fields" class="hidden">
-                    <input id="personal-desc" type="text" class="w-full bg-slate-100 rounded-2xl px-5 py-4" placeholder="Описание">
+                    <input id="personal-desc" type="text" class="w-full bg-slate-100 rounded-2xl px-5 py-4 text-base" placeholder="Описание (например: Поездка)">
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mt-6">
-                    <input id="entry-date" type="date" class="bg-slate-100 rounded-2xl px-5 py-4">
-                    <input id="entry-time" type="time" class="bg-slate-100 rounded-2xl px-5 py-4">
+                <div class="grid grid-cols-2 gap-4 mt-8">
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-1">Дата</label>
+                        <input id="entry-date" type="date" class="w-full bg-slate-100 rounded-2xl px-5 py-4">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-1">Время</label>
+                        <input id="entry-time" type="time" class="w-full bg-slate-100 rounded-2xl px-5 py-4">
+                    </div>
                 </div>
 
                 <button onclick="startVoiceInput()" 
-                        class="mt-10 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium py-5 rounded-3xl flex items-center justify-center gap-3">
-                    <i class="fa-solid fa-microphone"></i>
+                        class="mt-10 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-5 rounded-3xl flex items-center justify-center gap-3 font-medium">
+                    <i class="fa-solid fa-microphone text-xl"></i>
                     <span>Надиктовать запись</span>
                 </button>
-                <p id="voice-status" class="text-center text-xs text-slate-400 mt-3"></p>
+                <p id="voice-status" class="text-center text-xs text-slate-400 mt-3 h-5"></p>
             </div>
         </div>
     </div>
 
     <script>
         let entries = [];
+        let currentEditId = null;
 
         function loadEntries() {
             const saved = localStorage.getItem('kinesiologEntries');
@@ -142,36 +140,35 @@
             const container = document.getElementById('entries-list');
             container.innerHTML = '';
 
-            const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+            const sortedEntries = [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 
             let currentDate = '';
-            sorted.forEach(entry => {
+            sortedEntries.forEach(entry => {
                 if (entry.date !== currentDate) {
                     currentDate = entry.date;
                     container.innerHTML += `
-                        <div class="text-xs font-semibold text-slate-500 px-2 mt-6 mb-2">
-                            ${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}
+                        <div class="px-2 mt-6 mb-2 text-xs font-semibold text-slate-500">
+                            ${new Date(entry.date).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })}
                         </div>`;
                 }
 
-                const isPersonal = entry.isPersonal;
                 const html = `
-                    <div class="entry-card mb-3 rounded-3xl overflow-hidden shadow-sm border border-slate-100" data-id="${entry.id}">
+                    <div class="entry-card mb-3" data-id="${entry.id}">
                         <div class="delete-btn" onclick="deleteEntry('${entry.id}')">
-                            Удалить
+                            <i class="fa-solid fa-trash"></i>
                         </div>
                         <div class="entry-content flex" ontouchstart="startSwipe(event)" ontouchmove="moveSwipe(event)" ontouchend="endSwipe(event)">
-                            <div class="${isPersonal ? 'bg-slate-400' : 'bg-blue-500'} w-1.5"></div>
-                            <div class="flex-1 px-5 py-4">
-                                <div class="flex justify-between">
-                                    <div class="flex-1">
-                                        ${isPersonal ? 
-                                            `<div class="font-medium text-slate-800">${entry.description || 'Личная запись'}</div>` :
+                            <div class="${entry.isPersonal ? 'bg-slate-400' : 'bg-blue-500'} w-1.5 rounded-l-3xl"></div>
+                            <div onclick="editEntry('${entry.id}')" class="flex-1 px-5 py-4 cursor-pointer">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1 pr-4">
+                                        ${entry.isPersonal ? 
+                                            `<div class="font-medium">${entry.description || 'Личная запись'}</div>` :
                                             `<div class="font-medium">${entry.name}</div>
                                              <div class="text-sm text-slate-500">${entry.phone}</div>`
                                         }
                                     </div>
-                                    <div class="text-right font-semibold text-lg text-slate-700">${entry.time}</div>
+                                    <div class="font-semibold text-xl text-slate-700">${entry.time}</div>
                                 </div>
                             </div>
                         </div>
@@ -180,9 +177,8 @@
             });
         }
 
-        // Swipe logic
-        let startX = 0;
-        let currentCard = null;
+        // Swipe functionality
+        let startX = 0, currentCard = null;
 
         function startSwipe(e) {
             currentCard = e.currentTarget.parentElement;
@@ -193,15 +189,13 @@
         function moveSwipe(e) {
             if (!currentCard) return;
             const diff = startX - e.touches[0].clientX;
-            if (diff > 50) {
-                currentCard.classList.add('swiped');
-            }
+            if (diff > 40) currentCard.classList.add('swiped');
         }
 
         function endSwipe(e) {
             if (!currentCard) return;
             const diff = startX - e.changedTouches[0].clientX;
-            if (diff > 120) {
+            if (diff > 100) {
                 currentCard.classList.add('swiped');
             } else {
                 currentCard.classList.remove('swiped');
@@ -216,18 +210,124 @@
             }
         }
 
-        // Остальные функции (showAddModal, saveEntry, voice и т.д.)
-        function showAddModal() { /* ... оставь как в первой версии ... */ }
-        function hideAddModal() { /* ... */ }
-        function togglePersonal() { /* ... */ }
-        function saveEntry() { /* ... */ }
-        function startVoiceInput() { /* ... */ }
-        function parseVoiceInput(text) { /* ... */ }
+        // Modal functions
+        function showAddModal() {
+            currentEditId = null;
+            document.getElementById('modal-title').textContent = 'Новая запись';
+            document.getElementById('is-personal').checked = false;
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-phone').value = '';
+            document.getElementById('personal-desc').value = '';
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('entry-date').value = today;
+            document.getElementById('entry-time').value = '10:00';
+            
+            togglePersonal();
+            document.getElementById('add-modal').classList.remove('hidden');
+            document.getElementById('add-modal').classList.add('flex');
+        }
 
-        // Инициализация
-        window.onload = () => {
-            loadEntries();
-        };
+        function hideAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+            document.getElementById('add-modal').classList.remove('flex');
+        }
+
+        function togglePersonal() {
+            const isPersonal = document.getElementById('is-personal').checked;
+            document.getElementById('client-fields').classList.toggle('hidden', isPersonal);
+            document.getElementById('personal-fields').classList.toggle('hidden', !isPersonal);
+        }
+
+        function saveEntry() {
+            const isPersonal = document.getElementById('is-personal').checked;
+            const date = document.getElementById('entry-date').value;
+            const time = document.getElementById('entry-time').value;
+
+            if (!date || !time) return alert('Укажите дату и время');
+
+            const entry = {
+                id: currentEditId || Date.now().toString(36),
+                date: date,
+                time: time,
+                isPersonal: isPersonal,
+                name: isPersonal ? '' : document.getElementById('client-name').value.trim(),
+                phone: isPersonal ? '' : document.getElementById('client-phone').value.trim(),
+                description: isPersonal ? document.getElementById('personal-desc').value.trim() : ''
+            };
+
+            if (!isPersonal && !entry.name) return alert('Укажите ФИО клиента');
+
+            if (currentEditId) {
+                const index = entries.findIndex(e => e.id === currentEditId);
+                if (index !== -1) entries[index] = entry;
+            } else {
+                entries.push(entry);
+            }
+
+            saveEntries();
+            renderEntries();
+            hideAddModal();
+        }
+
+        function editEntry(id) {
+            const entry = entries.find(e => e.id === id);
+            if (!entry) return;
+
+            currentEditId = id;
+            document.getElementById('modal-title').textContent = 'Редактировать запись';
+            document.getElementById('is-personal').checked = entry.isPersonal;
+            document.getElementById('entry-date').value = entry.date;
+            document.getElementById('entry-time').value = entry.time;
+
+            if (entry.isPersonal) {
+                document.getElementById('personal-desc').value = entry.description;
+            } else {
+                document.getElementById('client-name').value = entry.name;
+                document.getElementById('client-phone').value = entry.phone;
+            }
+
+            togglePersonal();
+            document.getElementById('add-modal').classList.remove('hidden');
+            document.getElementById('add-modal').classList.add('flex');
+        }
+
+        // Voice Input
+        function startVoiceInput() {
+            const status = document.getElementById('voice-status');
+            status.textContent = '🎤 Слушаю...';
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return alert('Голосовой ввод не поддерживается');
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ru-RU';
+            recognition.interimResults = true;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                status.textContent = transcript;
+                parseVoiceInput(transcript.toLowerCase());
+            };
+
+            recognition.onerror = () => status.textContent = 'Ошибка распознавания';
+            recognition.onend = () => setTimeout(() => status.textContent = '', 2000);
+
+            recognition.start();
+        }
+
+        function parseVoiceInput(text) {
+            // Простой парсер (можно улучшать)
+            if (text.includes('личн') || text.includes('себе')) {
+                document.getElementById('is-personal').checked = true;
+                togglePersonal();
+            }
+            // ... (остальной парсер можно расширить позже)
+            alert('Голос распознан: ' + text);
+        }
+
+        // Init
+        window.onload = loadEntries;
     </script>
 </body>
 </html>
