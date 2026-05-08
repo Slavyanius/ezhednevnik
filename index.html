@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#f8fafc">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%233b82f6'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle' fill='white'%3E📅%3C/text%3E%3C/svg%3E">
+    <title>Ежедневник</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600&amp;display=swap');
+        
+        :root {
+            --ios-bg: #f8fafc;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background: var(--ios-bg);
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card:active {
+            transform: scale(0.98);
+        }
+        
+        .time-bar {
+            width: 6px;
+            border-top-left-radius: 9999px;
+            border-bottom-left-radius: 9999px;
+        }
+        
+        .modal {
+            animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        @keyframes modalPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .list-group-header {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #64748b;
+        }
+        
+        input[type="date"], input[type="time"] {
+            font-family: inherit;
+        }
+        
+        .tail-container {
+            max-width: 428px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100dvh;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen">
+    <div class="tail-container w-full overflow-hidden flex flex-col h-screen">
+        <!-- Header -->
+        <div class="bg-white border-b border-slate-200 px-6 pt-12 pb-4 flex items-center justify-between sticky top-0 z-50">
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tighter text-slate-900">Ежедневник</h1>
+                <p class="text-xs text-slate-500 mt-0.5">Кинезиолог</p>
+            </div>
+            <button onclick="showAddModal()" 
+                    class="w-9 h-9 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 transition-all">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto pb-24" id="main-content">
+            <div class="px-4 pt-6" id="entries-list">
+                <!-- JS rendered -->
+            </div>
+        </div>
+
+        <!-- Bottom Tab Bar -->
+        <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[428px] bg-white border-t border-slate-200 h-14 flex items-center justify-around z-50">
+            <button onclick="switchTab(0)" class="flex flex-col items-center text-blue-500 tab-btn active">
+                <i class="fa-solid fa-calendar-day text-xl"></i>
+                <span class="text-[10px] mt-0.5">Записи</span>
+            </button>
+            <button onclick="switchTab(1)" class="flex flex-col items-center text-slate-400 tab-btn">
+                <i class="fa-solid fa-chart-simple text-xl"></i>
+                <span class="text-[10px] mt-0.5">Статистика</span>
+            </button>
+            <button onclick="switchTab(2)" class="flex flex-col items-center text-slate-400 tab-btn">
+                <i class="fa-solid fa-user text-xl"></i>
+                <span class="text-[10px] mt-0.5">Профиль</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="add-modal" class="hidden fixed inset-0 bg-black/60 flex items-end z-[100]">
+        <div class="bg-white w-full rounded-t-3xl max-h-[92vh] overflow-hidden modal">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b flex items-center justify-between bg-white sticky top-0">
+                <button onclick="hideAddModal()" class="text-blue-500 font-medium text-lg">Отмена</button>
+                <h2 class="font-semibold text-lg" id="modal-title">Новая запись</h2>
+                <button onclick="saveEntry()" class="text-blue-500 font-semibold text-lg">Готово</button>
+            </div>
+            
+            <div class="p-6 overflow-auto" style="max-height: calc(92vh - 140px)">
+                <!-- Personal Toggle -->
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <div class="font-medium">Личная запись</div>
+                        <div class="text-sm text-slate-500">Без клиента</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="is-personal" onchange="togglePersonal()" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
+
+                <!-- Client fields -->
+                <div id="client-fields">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">ФИО клиента</label>
+                            <input id="client-name" type="text" 
+                                   class="w-full bg-slate-100 border border-transparent focus:border-blue-500 rounded-2xl px-5 py-4 text-base outline-none transition-all"
+                                   placeholder="Иванов Иван Иванович">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Телефон</label>
+                            <input id="client-phone" type="tel" 
+                                   class="w-full bg-slate-100 border border-transparent focus:border-blue-500 rounded-2xl px-5 py-4 text-base outline-none transition-all"
+                                   placeholder="+7 (916) 123-45-67">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description field (for personal) -->
+                <div id="personal-fields" class="hidden">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1.5">Описание</label>
+                        <input id="personal-desc" type="text" 
+                               class="w-full bg-slate-100 border border-transparent focus:border-blue-500 rounded-2xl px-5 py-4 text-base outline-none transition-all"
+                               placeholder="Поездка в центр / Тренировка">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mt-8">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1.5">Дата</label>
+                        <input id="entry-date" type="date" 
+                               class="w-full bg-slate-100 border border-transparent focus:border-blue-500 rounded-2xl px-5 py-4 text-base outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1.5">Время</label>
+                        <input id="entry-time" type="time" 
+                               class="w-full bg-slate-100 border border-transparent focus:border-blue-500 rounded-2xl px-5 py-4 text-base outline-none">
+                    </div>
+                </div>
+
+                <!-- Voice Input -->
+                <button onclick="startVoiceInput()" 
+                        class="mt-10 w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium py-5 rounded-3xl flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg">
+                    <i class="fa-solid fa-microphone text-xl"></i>
+                    <span>Надиктовать запись</span>
+                </button>
+                <p id="voice-status" class="text-center text-xs text-slate-400 mt-3"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-sm px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2">
+        <i class="fa-solid fa-check"></i>
+        <span id="toast-text"></span>
+    </div>
+
+    <script>
+        // Tailwind script already loaded
+        function initTailwind() {
+            // Already initialized via CDN
+        }
+
+        let entries = [];
+        let currentEditId = null;
+
+        // Load from localStorage
+        function loadEntries() {
+            const saved = localStorage.getItem('kinesiologEntries');
+            if (saved) {
+                entries = JSON.parse(saved);
+            } else {
+                // Demo data
+                entries = [
+                    {
+                        id: "1",
+                        date: "2026-05-09",
+                        time: "10:00",
+                        isPersonal: false,
+                        name: "Смирнова Анна Петровна",
+                        phone: "+7 (915) 234-56-78",
+                        description: ""
+                    },
+                    {
+                        id: "2",
+                        date: "2026-05-09",
+                        time: "14:30",
+                        isPersonal: true,
+                        name: "",
+                        phone: "",
+                        description: "Встреча с поставщиком оборудования"
+                    },
+                    {
+                        id: "3",
+                        date: "2026-05-08",
+                        time: "09:00",
+                        isPersonal: false,
+                        name: "Петров Сергей Александрович",
+                        phone: "+7 (977) 111-22-33",
+                        description: ""
+                    }
+                ];
+                saveEntries();
+            }
+        }
+
+        function saveEntries() {
+            localStorage.setItem('kinesiologEntries', JSON.stringify(entries));
+        }
+
+        function formatDateKey(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' });
+        }
+
+        function isToday(dateStr) {
+            const today = new Date().toISOString().split('T')[0];
+            return dateStr === today;
+        }
+
+        function isPast(dateStr) {
+            const today = new Date().toISOString().split('T')[0];
+            return dateStr < today;
+        }
+
+        function renderEntries() {
+            const container = document.getElementById('entries-list');
+            container.innerHTML = '';
+
+            // Sort entries
+            const sortedEntries = [...entries].sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return a.time.localeCompare(b.time);
+            });
+
+            const upcoming = sortedEntries.filter(e => !isPast(e.date));
+            const past = sortedEntries.filter(e => isPast(e.date));
+
+            // Upcoming
+            if (upcoming.length > 0) {
+                container.innerHTML += `<div class="list-group-header px-2 mb-3 mt-2">ПРЕДСТОЯЩИЕ</div>`;
+                renderGroup(upcoming, container);
+            }
+
+            // Past
+            if (past.length > 0) {
+                container.innerHTML += `
+                    <div onclick="togglePast()" id="past-header" class="flex items-center justify-between px-2 py-3 cursor-pointer bg-white rounded-2xl mb-2">
+                        <div class="list-group-header">ПРОШЕДШИЕ</div>
+                        <i id="past-chevron" class="fa-solid fa-chevron-down text-slate-400"></i>
+                    </div>
+                    <div id="past-container" class="hidden">
+                `;
+                renderGroup(past, container, true);
+                container.innerHTML += `</div>`;
+            }
+
+            if (sortedEntries.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20 text-slate-400">
+                        <div class="text-6xl mb-4">📅</div>
+                        <p class="font-medium">Нет записей</p>
+                        <p class="text-sm mt-1">Нажмите + чтобы добавить</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderGroup(group, container, isPastGroup = false) {
+            let currentDate = '';
+            
+            group.forEach(entry => {
+                if (entry.date !== currentDate) {
+                    currentDate = entry.date;
+                    container.innerHTML += `
+                        <div class="list-group-header px-2 mt-6 mb-2">${formatDateKey(entry.date)}</div>
+                    `;
+                }
+                
+                const color = entry.isPersonal ? 'bg-slate-400' : 'bg-blue-500';
+                const content = entry.isPersonal ? 
+                    `<div class="font-medium text-slate-800">${entry.description || 'Личная запись'}</div>` :
+                    `<div class="font-medium">${entry.name}</div>
+                     <div class="text-sm text-slate-500">${entry.phone}</div>`;
+                
+                const html = `
+                    <div onclick="editEntry('${entry.id}')" 
+                         class="card bg-white rounded-3xl overflow-hidden mb-3 shadow-sm border border-slate-100 active:shadow-md">
+                        <div class="flex">
+                            <!-- Colored bar -->
+                            <div class="${color} time-bar h-full"></div>
+                            <div class="flex-1 px-5 py-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        ${content}
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-semibold text-slate-700">${entry.time}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function togglePast() {
+            const cont = document.getElementById('past-container');
+            const chevron = document.getElementById('past-chevron');
+            cont.classList.toggle('hidden');
+            if (cont.classList.contains('hidden')) {
+                chevron.classList.remove('fa-chevron-up');
+                chevron.classList.add('fa-chevron-down');
+            } else {
+                chevron.classList.add('fa-chevron-up');
+                chevron.classList.remove('fa-chevron-down');
+            }
+        }
+
+        function showAddModal() {
+            currentEditId = null;
+            document.getElementById('modal-title').textContent = 'Новая запись';
+            
+            // Reset form
+            document.getElementById('is-personal').checked = false;
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-phone').value = '';
+            document.getElementById('personal-desc').value = '';
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('entry-date').value = today;
+            document.getElementById('entry-time').value = '10:00';
+            
+            togglePersonal();
+            document.getElementById('add-modal').classList.remove('hidden');
+            document.getElementById('add-modal').classList.add('flex');
+        }
+
+        function hideAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+            document.getElementById('add-modal').classList.remove('flex');
+        }
+
+        function togglePersonal() {
+            const isPersonal = document.getElementById('is-personal').checked;
+            if (isPersonal) {
+                document.getElementById('client-fields').classList.add('hidden');
+                document.getElementById('personal-fields').classList.remove('hidden');
+            } else {
+                document.getElementById('client-fields').classList.remove('hidden');
+                document.getElementById('personal-fields').classList.add('hidden');
+            }
+        }
+
+        function saveEntry() {
+            const isPersonal = document.getElementById('is-personal').checked;
+            const date = document.getElementById('entry-date').value;
+            const time = document.getElementById('entry-time').value;
+            
+            if (!date || !time) {
+                showToast('Укажите дату и время', true);
+                return;
+            }
+            
+            let entry = {
+                id: currentEditId || Date.now().toString(36),
+                date: date,
+                time: time,
+                isPersonal: isPersonal,
+                name: '',
+                phone: '',
+                description: ''
+            };
+            
+            if (isPersonal) {
+                entry.description = document.getElementById('personal-desc').value.trim() || 'Личная запись';
+            } else {
+                entry.name = document.getElementById('client-name').value.trim();
+                entry.phone = document.getElementById('client-phone').value.trim();
+                if (!entry.name) {
+                    showToast('Укажите ФИО клиента', true);
+                    return;
+                }
+            }
+            
+            if (currentEditId) {
+                // Update
+                const index = entries.findIndex(e => e.id === currentEditId);
+                if (index > -1) entries[index] = entry;
+            } else {
+                entries.push(entry);
+            }
+            
+            saveEntries();
+            renderEntries();
+            hideAddModal();
+            showToast('Запись сохранена');
+        }
+
+        function editEntry(id) {
+            const entry = entries.find(e => e.id === id);
+            if (!entry) return;
+            
+            currentEditId = id;
+            document.getElementById('modal-title').textContent = 'Редактировать';
+            
+            document.getElementById('is-personal').checked = entry.isPersonal;
+            document.getElementById('entry-date').value = entry.date;
+            document.getElementById('entry-time').value = entry.time;
+            
+            if (entry.isPersonal) {
+                document.getElementById('personal-desc').value = entry.description;
+            } else {
+                document.getElementById('client-name').value = entry.name;
+                document.getElementById('client-phone').value = entry.phone;
+            }
+            
+            togglePersonal();
+            document.getElementById('add-modal').classList.remove('hidden');
+            document.getElementById('add-modal').classList.add('flex');
+        }
+
+        // Voice Recognition
+        let recognition = null;
+        
+        function startVoiceInput() {
+            if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                showToast('Голосовой ввод не поддерживается в этом браузере', true);
+                return;
+            }
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ru-RU';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            
+            const statusEl = document.getElementById('voice-status');
+            statusEl.textContent = 'Слушаю... Говорите';
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                statusEl.textContent = transcript;
+                
+                parseVoiceInput(transcript);
+            };
+            
+            recognition.onerror = function(e) {
+                statusEl.textContent = 'Ошибка распознавания';
+                setTimeout(() => { statusEl.textContent = ''; }, 2000);
+            };
+            
+            recognition.onend = function() {
+                setTimeout(() => { statusEl.textContent = ''; }, 1500);
+            };
+            
+            recognition.start();
+        }
+        
+        function parseVoiceInput(text) {
+            const isPersonalWords = ['личное', 'личная', 'себе', 'мое', 'своё'];
+            let isPersonal = false;
+            
+            for (let word of isPersonalWords) {
+                if (text.includes(word)) {
+                    isPersonal = true;
+                    break;
+                }
+            }
+            
+            document.getElementById('is-personal').checked = isPersonal;
+            togglePersonal();
+            
+            // Try to extract time
+            const timeMatch = text.match(/(\d{1,2})[:.]?(\d{2})?/);
+            if (timeMatch) {
+                let hours = timeMatch[1].padStart(2, '0');
+                let minutes = timeMatch[2] ? timeMatch[2] : '00';
+                if (parseInt(hours) > 23) hours = '12';
+                document.getElementById('entry-time').value = `${hours}:${minutes}`;
+            }
+            
+            // Simple tomorrow / today logic
+            if (text.includes('завтра')) {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                document.getElementById('entry-date').value = tomorrow.toISOString().split('T')[0];
+            }
+            
+            if (isPersonal) {
+                // Remove keywords
+                let desc = text.replace(/личное|личная|завтра|в \d+/g, '').trim();
+                desc = desc.charAt(0).toUpperCase() + desc.slice(1);
+                if (desc.length > 3) {
+                    document.getElementById('personal-desc').value = desc;
+                }
+            } else {
+                // Try to extract name and phone
+                const phoneMatch = text.match(/(\+?7|8)?[\s\(]?(\d{3})[\s\)]?(\d{3})[\s-]?(\d{2})[\s-]?(\d{2})/);
+                if (phoneMatch) {
+                    const phone = phoneMatch[0].replace(/\s/g, '');
+                    document.getElementById('client-phone').value = phone;
+                }
+                
+                // Name is the rest
+                let namePart = text;
+                if (phoneMatch) namePart = namePart.replace(phoneMatch[0], '');
+                namePart = namePart.replace(/завтра|в \d+:\d+|в \d+/g, '').trim();
+                if (namePart.length > 5) {
+                    document.getElementById('client-name').value = namePart;
+                }
+            }
+            
+            showToast('Поля заполнены из речи');
+        }
+        
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const text = document.getElementById('toast-text');
+            text.textContent = message;
+            toast.classList.remove('hidden');
+            toast.style.backgroundColor = isError ? '#ef4444' : '#1f2937';
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2500);
+        }
+        
+        function switchTab(n) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach((tab, i) => {
+                if (i === n) {
+                    tab.classList.add('text-blue-500');
+                    tab.classList.remove('text-slate-400');
+                } else {
+                    tab.classList.remove('text-blue-500');
+                    tab.classList.add('text-slate-400');
+                }
+            });
+            
+            if (n === 0) {
+                document.getElementById('main-content').style.opacity = 1;
+            } else {
+                document.getElementById('main-content').style.opacity = 0.4;
+                showToast('Раздел в разработке');
+            }
+        }
+        
+        // Service Worker
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('data:application/javascript,' + encodeURIComponent(`
+                    self.addEventListener('install', () => self.skipWaiting());
+                    self.addEventListener('fetch', e => {
+                        e.respondWith(fetch(e.request));
+                    });
+                `)).catch(() => {});
+            }
+        }
+        
+        // Keyboard handling for iOS
+        function handleIOSKeyboard() {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', () => {
+                    document.body.style.height = '100vh';
+                });
+            });
+        }
+        
+        // Init
+        function init() {
+            loadEntries();
+            renderEntries();
+            registerServiceWorker();
+            handleIOSKeyboard();
+            
+            // Demo toast on load
+            setTimeout(() => {
+                // showToast('Приложение готово к работе');
+            }, 1200);
+            
+            // Make it feel more native
+            document.documentElement.style.setProperty('--ios-bg', '#f8fafc');
+        }
+        
+        window.onload = init;
+    </script>
+</body>
+</html>
