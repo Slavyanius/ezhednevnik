@@ -232,7 +232,7 @@
             return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
 
-        // ==================== УЛУЧШЕННЫЙ ПАРСЕР ВРЕМЕНИ (словами + цифрами) ====================
+        // ==================== ИСПРАВЛЕННЫЙ ПАРСЕР ====================
         function parseVoiceInput(original) {
             const lower = original.toLowerCase().trim();
             const status = document.getElementById('voice-status');
@@ -242,7 +242,7 @@
             document.getElementById('is-personal').checked = isPersonal;
             togglePersonal();
 
-            // === ДАТА (оставляем как было — работает) ===
+            // === ДАТА ===
             let dateValue = new Date().toISOString().split('T')[0];
             if (lower.includes('завтра')) { const d = new Date(); d.setDate(d.getDate()+1); dateValue = d.toISOString().split('T')[0]; }
             else if (lower.includes('послезавтра')) { const d = new Date(); d.setDate(d.getDate()+2); dateValue = d.toISOString().split('T')[0]; }
@@ -256,56 +256,45 @@
             }
             document.getElementById('entry-date').value = dateValue;
 
-            // === ВРЕМЯ — НОВЫЙ УЛУЧШЕННЫЙ ПАРСЕР ===
+            // === ВРЕМЯ (цифры + слова) ===
             let timeValue = '10:00';
-
-            // 1. Цифры
+            // Цифровой формат
             let timeMatch = lower.match(/(?:в|на)\s*(\d{1,2})[\s.:]?(\d{0,2})?/);
             if (timeMatch) {
                 let h = parseInt(timeMatch[1]);
                 let m = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
                 if (h > 23) h = 12;
                 timeValue = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-            } 
-            // 2. Словами (шестнадцать тридцать, четырнадцать ноль ноль и т.д.)
-            else {
-                const hourWords = {
-                    'один':1,'два':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,'девять':9,
-                    'десять':10,'одиннадцать':11,'двенадцать':12,'тринадцать':13,'четырнадцать':14,
-                    'пятнадцать':15,'шестнадцать':16,'семнадцать':17,'восемнадцать':18,'девятнадцать':19,
-                    'двадцать':20,'двадцать один':21,'двадцать два':22,'двадцать три':23
-                };
-                const minWords = { 'ноль':0, 'ноль ноль':0, 'тридцать':30, 'пятнадцать':15, 'сорок пять':45 };
-
-                // ищем "в шестнадцать тридцать", "на десять", "четырнадцать ноль ноль" и т.д.
-                const spokenTime = lower.match(/(?:в|на)\s*([а-яё\s]+?)(?:\s+(ноль|ноль ноль|тридцать|пятнадцать|сорок пять))?/);
-                if (spokenTime) {
-                    const hourPart = spokenTime[1].trim();
-                    const minPart = spokenTime[2] || 'ноль';
-                    const h = hourWords[hourPart];
-                    const m = minWords[minPart] || 0;
-                    if (h !== undefined) {
-                        timeValue = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-                    }
+            } else {
+                // Словесный формат
+                const hourWords = {'один':1,'два':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,'девять':9,'десять':10,'одиннадцать':11,'двенадцать':12,'тринадцать':13,'четырнадцать':14,'пятнадцать':15,'шестнадцать':16,'семнадцать':17,'восемнадцать':18,'девятнадцать':19,'двадцать':20,'двадцать один':21,'двадцать два':22,'двадцать три':23};
+                const minWords = {'ноль':0,'ноль ноль':0,'тридцать':30,'пятнадцать':15,'сорок пять':45};
+                const spoken = lower.match(/(?:в|на)\s*([а-яё\s]+?)(?:\s+(ноль|ноль ноль|тридцать|пятнадцать|сорок пять))?/);
+                if (spoken) {
+                    const hPart = spoken[1].trim();
+                    const mPart = spoken[2] || 'ноль';
+                    const h = hourWords[hPart];
+                    const m = minWords[mPart] || 0;
+                    if (h !== undefined) timeValue = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
                 }
             }
             document.getElementById('entry-time').value = timeValue;
 
-            // === ОЧИСТКА ТЕКСТА ДЛЯ ФИО / ОПИСАНИЯ ===
+            // === ОЧИСТКА ДЛЯ ИМЕНИ (самое важное исправление) ===
             let clean = original
-                .replace(/(в|на)\s*\d{1,2}[:.\s]?\d{0,2}/gi, '')                    // цифры время
-                .replace(/(в|на)\s*[а-яё\s]+?(ноль|тридцать|пятнадцать|сорок пять)?/gi, '') // слова время
-                .replace(/\d{1,2}\s*(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/gi, '')
+                .replace(/(в|на)\s*\d{1,2}[:.\s]?\d{0,2}/gi, '')                    // время цифрами
+                .replace(/(в|на)\s*[а-яё\s]+?(ноль|тридцать|пятнадцать|сорок пять)?/gi, '') // время словами
+                .replace(/\d{1,2}\s*(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)/gi, '') // дата
                 .replace(/завтра|послезавтра/gi, '')
                 .replace(/телефон|номер/gi, '')
                 .replace(/личн|себе|мое|моя|личная/gi, '')
-                .replace(/\+?7?\s*\(?\d{3}\)?[\s\-.]*\d{3}[\s\-.]*\d{2}[\s\-.]*\d{2}/g, '')
+                .replace(/\+?7?\s*\(?\d{3}\)?[\s\-.]*\d{3}[\s\-.]*\d{2}[\s\-.]*\d{2}/g, '') // телефон полностью
                 .trim();
 
             if (isPersonal) {
                 document.getElementById('personal-desc').value = capitalizeName(clean) || 'Личная запись';
             } else {
-                // Телефон
+                // Телефон (выполняем отдельно, чтобы точно заполнить поле)
                 const phoneRegex = /\+?7?\s*\(?\d{3}\)?[\s\-.]*\d{3}[\s\-.]*\d{2}[\s\-.]*\d{2}/g;
                 const phoneMatch = original.match(phoneRegex);
                 if (phoneMatch) {
@@ -318,7 +307,7 @@
             }
 
             status.textContent = '✓ Поля заполнены';
-            setTimeout(() => status.textContent = '', 1800);
+            setTimeout(() => status.textContent = '', 2000);
         }
 
         window.onload = loadEntries;
