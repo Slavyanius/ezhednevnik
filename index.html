@@ -13,30 +13,39 @@
         @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600&display=swap');
         body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: #f8fafc; }
         .tail-container { max-width: 428px; margin: 0 auto; background: white; min-height: 100dvh; }
-        .sticky-header { position: sticky; top: 0; z-index: 50; background: white; border-bottom: 1px solid #e2e8f0; }
+        .fixed-header { position: fixed; top: 0; left: 0; right: 0; max-width: 428px; margin: 0 auto; z-index: 50; background: white; border-bottom: 1px solid #e2e8f0; }
         .entry-card { position: relative; overflow: hidden; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 12px; }
         .entry-content { background: white; transition: transform 0.3s ease; }
         .delete-btn { position: absolute; right: 0; top: 0; bottom: 0; width: 85px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; transform: translateX(100%); transition: transform 0.3s ease; }
         .entry-card.swiped .entry-content { transform: translateX(-85px); }
         .entry-card.swiped .delete-btn { transform: translateX(0); }
-        .date-header { font-size: 15px; font-weight: 600; padding: 8px 12px; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; }
+        .date-header { font-size: 15px; font-weight: 600; padding: 10px 12px; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen bg-slate-100">
     <div class="tail-container w-full flex flex-col h-screen overflow-hidden">
         
-        <!-- Фиксированный header -->
-        <div class="sticky-header px-6 pt-12 pb-4 flex items-center justify-between">
+        <!-- ФИКСИРОВАННЫЙ HEADER -->
+        <div class="fixed-header px-6 pt-12 pb-4 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tighter">Ежедневник</h1>
                 <p class="text-xs text-slate-500">Кинезиолог</p>
             </div>
-            <button onclick="showAddModal()" class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg active:scale-95">
-                <i class="fa-solid fa-plus text-2xl"></i>
-            </button>
+            <div class="flex items-center gap-3">
+                <button onclick="exportData()" class="text-slate-600 hover:text-blue-600">
+                    <i class="fa-solid fa-download text-xl"></i>
+                </button>
+                <button onclick="importData()" class="text-slate-600 hover:text-blue-600">
+                    <i class="fa-solid fa-upload text-xl"></i>
+                </button>
+                <button onclick="showAddModal()" class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg active:scale-95">
+                    <i class="fa-solid fa-plus text-2xl"></i>
+                </button>
+            </div>
         </div>
 
-        <div class="flex-1 overflow-auto p-4" id="entries-list"></div>
+        <!-- Контент с отступом сверху под фиксированный header -->
+        <div class="flex-1 overflow-auto pt-20 pb-4 px-4" id="entries-list"></div>
     </div>
 
     <!-- Modal -->
@@ -59,21 +68,14 @@
                     </label>
                 </div>
 
-                <!-- Многострочное поле для клиента -->
                 <div id="client-fields">
-                    <textarea id="client-info" rows="3" 
-                              class="w-full bg-slate-100 rounded-3xl px-5 py-4 text-base resize-none"
-                              placeholder="ФИО клиента&#10;Телефон"></textarea>
+                    <textarea id="client-info" rows="3" class="w-full bg-slate-100 rounded-3xl px-5 py-4 text-base resize-none" placeholder="ФИО клиента&#10;Телефон"></textarea>
                 </div>
 
-                <!-- Поле для личной записи -->
                 <div id="personal-fields" class="hidden">
-                    <input id="personal-desc" type="text" 
-                           class="w-full bg-slate-100 rounded-3xl px-5 py-4 text-base"
-                           placeholder="Описание">
+                    <input id="personal-desc" type="text" class="w-full bg-slate-100 rounded-3xl px-5 py-4 text-base" placeholder="Описание">
                 </div>
 
-                <!-- Голосовой ввод -->
                 <button id="voice-btn"
                         class="mt-8 mb-8 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-5 rounded-3xl flex items-center justify-center gap-3 font-medium text-lg"
                         ontouchstart="startVoiceInput(event)"
@@ -126,7 +128,7 @@
                     container.innerHTML += `
                         <div class="date-header flex items-center gap-2">
                             <div class="flex-1 h-px bg-slate-300"></div>
-                            <span class="text-slate-600">${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}</span>
+                            <span>${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}</span>
                             <div class="flex-1 h-px bg-slate-300"></div>
                         </div>`;
                 }
@@ -201,15 +203,14 @@
             const entry = { 
                 id: currentEditId || Date.now().toString(36), 
                 date, time, isPersonal,
-                name: isPersonal ? '' : '',
-                phone: isPersonal ? '' : '',
+                name: '', phone: '',
                 description: isPersonal ? document.getElementById('personal-desc').value.trim() : '' 
             };
 
             if (!isPersonal) {
-                const info = document.getElementById('client-info').value.trim().split('\n');
-                entry.name = info[0] ? info[0].trim() : '';
-                entry.phone = info[1] ? info[1].trim() : '';
+                const lines = document.getElementById('client-info').value.trim().split('\n');
+                entry.name = lines[0] ? lines[0].trim() : '';
+                entry.phone = lines[1] ? lines[1].trim() : '';
             }
 
             if (!isPersonal && !entry.name) return alert('Укажите ФИО клиента');
@@ -241,7 +242,7 @@
             document.getElementById('add-modal').classList.add('flex');
         }
 
-        // ==================== HOLD-TO-TALK ====================
+        // ==================== ГОЛОСОВОЙ ВВОД ====================
         function startVoiceInput(e) {
             e.preventDefault();
             if (isRecording) return;
@@ -288,12 +289,10 @@
             return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
 
-        // ==================== ПАРСЕР ====================
         function parseVoiceInput(original) {
             const status = document.getElementById('voice-status');
             const isPersonal = document.getElementById('is-personal').checked;
 
-            // Находим телефон
             const phoneRegex = /(\+?7|8)?\s*9\d{2}\s*\d{3}\s*\d{2}\s*\d{2}|\+?\d{11}|\d{11}/g;
             const phoneMatch = original.match(phoneRegex);
 
@@ -304,7 +303,6 @@
                 else if (!phone.startsWith('+7') && phone.length === 11) phone = '+7' + phone;
             }
 
-            // Удаляем телефон из строки
             let clean = original;
             if (phoneMatch) clean = clean.replace(phoneMatch[0], '');
             clean = clean.replace(/телефон|номер/gi, '').trim();
@@ -318,6 +316,46 @@
 
             status.textContent = '✓ Заполнено';
             setTimeout(() => status.textContent = '', 1800);
+        }
+
+        // ==================== БЭКАП ====================
+        function exportData() {
+            if (entries.length === 0) return alert('Нет данных для экспорта');
+            const dataStr = JSON.stringify(entries, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ezhednevnik-backup-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('Файл сохранён в «Файлы» → Загрузки');
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    try {
+                        const imported = JSON.parse(ev.target.result);
+                        if (confirm(`Найдено ${imported.length} записей. Заменить текущие данные?`)) {
+                            entries = imported;
+                            saveEntries();
+                            renderEntries();
+                            alert('Данные успешно восстановлены!');
+                        }
+                    } catch (err) {
+                        alert('Ошибка чтения файла. Убедитесь, что это корректный JSON.');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
         }
 
         window.onload = loadEntries;
