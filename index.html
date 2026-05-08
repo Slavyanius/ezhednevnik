@@ -25,7 +25,7 @@
 <body class="flex items-center justify-center min-h-screen bg-slate-100">
     <div class="tail-container w-full flex flex-col h-screen overflow-hidden">
         
-        <!-- ФИКСИРОВАННЫЙ HEADER -->
+        <!-- Фиксированный header -->
         <div class="fixed-header px-6 pt-12 pb-4 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tighter">Ежедневник</h1>
@@ -44,8 +44,8 @@
             </div>
         </div>
 
-        <!-- Контент с отступом сверху под фиксированный header -->
-        <div class="flex-1 overflow-auto pt-20 pb-4 px-4" id="entries-list"></div>
+        <!-- Список с отступом под шапку -->
+        <div class="flex-1 overflow-auto pt-24 px-4 pb-4" id="entries-list"></div>
     </div>
 
     <!-- Modal -->
@@ -68,8 +68,11 @@
                     </label>
                 </div>
 
+                <!-- Многострочное поле -->
                 <div id="client-fields">
-                    <textarea id="client-info" rows="3" class="w-full bg-slate-100 rounded-3xl px-5 py-4 text-base resize-none" placeholder="ФИО клиента&#10;Телефон"></textarea>
+                    <textarea id="client-info" rows="3" 
+                              class="w-full bg-slate-100 rounded-3xl px-5 py-4 text-base resize-none leading-relaxed"
+                              placeholder="ФИО клиента&#10;Телефон"></textarea>
                 </div>
 
                 <div id="personal-fields" class="hidden">
@@ -200,14 +203,11 @@
             const existing = entries.find(e => e.date === date && e.time === time && e.id !== currentEditId);
             if (existing && !confirm(isPersonal ? 'На это время уже есть личная запись! Сохранить всё равно?' : 'На это время уже есть запись клиента! Сохранить всё равно?')) return;
 
-            const entry = { 
-                id: currentEditId || Date.now().toString(36), 
-                date, time, isPersonal,
-                name: '', phone: '',
-                description: isPersonal ? document.getElementById('personal-desc').value.trim() : '' 
-            };
+            const entry = { id: currentEditId || Date.now().toString(36), date, time, isPersonal, name: '', phone: '', description: '' };
 
-            if (!isPersonal) {
+            if (isPersonal) {
+                entry.description = document.getElementById('personal-desc').value.trim();
+            } else {
                 const lines = document.getElementById('client-info').value.trim().split('\n');
                 entry.name = lines[0] ? lines[0].trim() : '';
                 entry.phone = lines[1] ? lines[1].trim() : '';
@@ -289,6 +289,7 @@
             return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
 
+        // ==================== ПАРСЕР (гарантированно разделяет на две строки) ====================
         function parseVoiceInput(original) {
             const status = document.getElementById('voice-status');
             const isPersonal = document.getElementById('is-personal').checked;
@@ -310,7 +311,8 @@
             if (isPersonal) {
                 document.getElementById('personal-desc').value = capitalizeName(clean) || 'Личная запись';
             } else {
-                const text = capitalizeName(clean) + (phone ? `\n${phone}` : '');
+                const namePart = capitalizeName(clean);
+                const text = namePart + (phone ? `\n${phone}` : '');
                 document.getElementById('client-info').value = text;
             }
 
@@ -329,7 +331,7 @@
             a.download = `ezhednevnik-backup-${new Date().toISOString().slice(0,10)}.json`;
             a.click();
             URL.revokeObjectURL(url);
-            alert('Файл сохранён в «Файлы» → Загрузки');
+            alert('Файл сохранён в «Файлы»');
         }
 
         function importData() {
@@ -343,14 +345,14 @@
                 reader.onload = ev => {
                     try {
                         const imported = JSON.parse(ev.target.result);
-                        if (confirm(`Найдено ${imported.length} записей. Заменить текущие данные?`)) {
+                        if (confirm(`Найдено ${imported.length} записей. Заменить текущие?`)) {
                             entries = imported;
                             saveEntries();
                             renderEntries();
                             alert('Данные успешно восстановлены!');
                         }
                     } catch (err) {
-                        alert('Ошибка чтения файла. Убедитесь, что это корректный JSON.');
+                        alert('Ошибка чтения файла');
                     }
                 };
                 reader.readAsText(file);
