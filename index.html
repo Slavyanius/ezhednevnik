@@ -13,17 +13,21 @@
         @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600&display=swap');
         body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: #f8fafc; }
         .tail-container { max-width: 428px; margin: 0 auto; background: white; min-height: 100dvh; }
-        .entry-card { position: relative; overflow: hidden; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .sticky-header { position: sticky; top: 0; z-index: 50; background: white; border-bottom: 1px solid #e2e8f0; }
+        .entry-card { position: relative; overflow: hidden; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 12px; }
         .entry-content { background: white; transition: transform 0.3s ease; }
         .delete-btn { position: absolute; right: 0; top: 0; bottom: 0; width: 85px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; transform: translateX(100%); transition: transform 0.3s ease; }
         .entry-card.swiped .entry-content { transform: translateX(-85px); }
         .entry-card.swiped .delete-btn { transform: translateX(0); }
+        .day-group { border-radius: 16px; padding: 4px; margin-bottom: 20px; }
         #voice-btn.recording { background: #ef4444 !important; transform: scale(1.08); }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen bg-slate-100">
     <div class="tail-container w-full flex flex-col h-screen overflow-hidden">
-        <div class="bg-white border-b px-6 pt-12 pb-4 flex items-center justify-between sticky top-0 z-50">
+        
+        <!-- Закреплённый header -->
+        <div class="sticky-header px-6 pt-12 pb-4 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tighter">Ежедневник</h1>
                 <p class="text-xs text-slate-500">Кинезиолог</p>
@@ -32,6 +36,7 @@
                 <i class="fa-solid fa-plus text-2xl"></i>
             </button>
         </div>
+
         <div class="flex-1 overflow-auto p-4" id="entries-list"></div>
     </div>
 
@@ -64,7 +69,7 @@
                     <input id="personal-desc" type="text" class="w-full bg-slate-100 rounded-2xl px-5 py-4 text-base" placeholder="Описание">
                 </div>
 
-                <!-- Голосовой ввод (только ФИО + телефон) -->
+                <!-- Голосовой ввод -->
                 <button id="voice-btn"
                         class="mt-6 mb-8 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-5 rounded-3xl flex items-center justify-center gap-3 font-medium text-lg"
                         ontouchstart="startVoiceInput(event)"
@@ -108,15 +113,49 @@
         function renderEntries() {
             const container = document.getElementById('entries-list');
             container.innerHTML = '';
+
             const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
-            let curDate = '';
+            let currentDate = '';
+            let isEvenDay = true;
+
             sorted.forEach(entry => {
-                if (entry.date !== curDate) {
-                    curDate = entry.date;
-                    container.innerHTML += `<div class="px-2 mt-6 mb-2 text-xs font-semibold text-slate-500">${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}</div>`;
+                if (entry.date !== currentDate) {
+                    currentDate = entry.date;
+                    isEvenDay = !isEvenDay;
+                    container.innerHTML += `
+                        <div class="day-group ${isEvenDay ? 'bg-slate-50' : 'bg-white'}">
+                            <div class="px-2 py-1 text-xs font-semibold text-slate-500">
+                                ${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}
+                            </div>`;
                 }
-                const html = `<div class="entry-card mb-3" data-id="${entry.id}"><div class="delete-btn" onclick="deleteEntry('${entry.id}')"><i class="fa-solid fa-trash"></i></div><div class="entry-content flex" ontouchstart="startSwipe(event)" ontouchmove="moveSwipe(event)" ontouchend="endSwipe(event)"><div class="${entry.isPersonal ? 'bg-slate-400' : 'bg-blue-500'} w-1.5 rounded-l-3xl"></div><div onclick="editEntry('${entry.id}')" class="flex-1 px-5 py-4 cursor-pointer"><div class="flex justify-between items-start"><div class="flex-1 pr-4">${entry.isPersonal ? `<div class="font-medium">${entry.description || 'Личная запись'}</div>` : `<div class="font-medium">${entry.name}</div><div class="text-sm text-slate-500">${entry.phone}</div>`}</div><div class="font-semibold text-xl text-slate-700">${entry.time}</div></div></div></div></div>`;
+
+                const barColor = entry.isPersonal ? 'bg-blue-500' : 'bg-red-500';
+
+                const html = `
+                    <div class="entry-card" data-id="${entry.id}">
+                        <div class="delete-btn" onclick="deleteEntry('${entry.id}')"><i class="fa-solid fa-trash"></i></div>
+                        <div class="entry-content flex" ontouchstart="startSwipe(event)" ontouchmove="moveSwipe(event)" ontouchend="endSwipe(event)">
+                            <div class="${barColor} w-1.5 rounded-l-3xl"></div>
+                            <div onclick="editEntry('${entry.id}')" class="flex-1 px-5 py-4 cursor-pointer">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1 pr-4">
+                                        ${entry.isPersonal ? 
+                                            `<div class="font-medium">${entry.description || 'Личная запись'}</div>` : 
+                                            `<div class="font-medium">${entry.name}</div><div class="text-sm text-slate-500">${entry.phone}</div>`
+                                        }
+                                    </div>
+                                    <div class="font-semibold text-xl text-slate-700">${entry.time}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
                 container.innerHTML += html;
+
+                // Закрываем day-group если следующий день другой
+                if (sorted.indexOf(entry) < sorted.length - 1 && sorted[sorted.indexOf(entry)+1].date !== currentDate) {
+                    container.innerHTML += `</div>`;
+                }
             });
         }
 
@@ -126,7 +165,11 @@
         function endSwipe(e) { if (currentCard) { const diff = startX - e.changedTouches[0].clientX; if (diff > 100) currentCard.classList.add('swiped'); else currentCard.classList.remove('swiped'); } }
 
         function deleteEntry(id) {
-            if (confirm('Удалить запись?')) { entries = entries.filter(e => e.id !== id); saveEntries(); renderEntries(); }
+            if (confirm('Удалить запись?')) { 
+                entries = entries.filter(e => e.id !== id); 
+                saveEntries(); 
+                renderEntries(); 
+            }
         }
 
         function showAddModal() {
@@ -155,36 +198,22 @@
             document.getElementById('personal-fields').classList.toggle('hidden', !isPersonal);
         }
 
-        // ==================== ПРОВЕРКА ДУБЛИКАТОВ ====================
         function saveEntry() {
             const isPersonal = document.getElementById('is-personal').checked;
             const date = document.getElementById('entry-date').value;
             const time = document.getElementById('entry-time').value;
-
             if (!date || !time) return alert('Укажите дату и время');
 
-            // Проверка конфликта по дате + времени
-            const existing = entries.find(e => 
-                e.date === date && 
-                e.time === time && 
-                e.id !== currentEditId
-            );
-
+            const existing = entries.find(e => e.date === date && e.time === time && e.id !== currentEditId);
             if (existing) {
-                const confirmMsg = isPersonal 
-                    ? 'На это время уже есть личная запись!\nСохранить новую запись всё равно?'
-                    : 'На это время уже есть запись клиента!\nСохранить новую запись всё равно?';
-                
-                if (!confirm(confirmMsg)) {
-                    return; // пользователь отказался
+                if (!confirm(isPersonal ? 'На это время уже есть личная запись! Сохранить всё равно?' : 'На это время уже есть запись клиента! Сохранить всё равно?')) {
+                    return;
                 }
             }
 
             const entry = { 
                 id: currentEditId || Date.now().toString(36), 
-                date, 
-                time, 
-                isPersonal,
+                date, time, isPersonal,
                 name: isPersonal ? '' : document.getElementById('client-name').value.trim(),
                 phone: isPersonal ? '' : document.getElementById('client-phone').value.trim(),
                 description: isPersonal ? document.getElementById('personal-desc').value.trim() : '' 
@@ -195,13 +224,9 @@
             if (currentEditId) {
                 const idx = entries.findIndex(e => e.id === currentEditId);
                 if (idx !== -1) entries[idx] = entry;
-            } else {
-                entries.push(entry);
-            }
+            } else entries.push(entry);
 
-            saveEntries();
-            renderEntries();
-            hideAddModal();
+            saveEntries(); renderEntries(); hideAddModal();
         }
 
         function editEntry(id) {
@@ -269,14 +294,12 @@
             return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
 
-        // ==================== ПАРСЕР (только ФИО + телефон) ====================
+        // ==================== ИСПРАВЛЕННЫЙ ПАРСЕР (только ФИО + телефон) ====================
         function parseVoiceInput(original) {
-            const lower = original.toLowerCase().trim();
             const status = document.getElementById('voice-status');
-
             const isPersonal = document.getElementById('is-personal').checked;
 
-            // === ТЕЛЕФОН ===
+            // Телефон
             const phoneRegex = /(\+?7|8)?\s*9\d{2}\s*\d{3}\s*\d{2}\s*\d{2}|\d{11}|\+?\d{11}/g;
             const phoneMatch = original.match(phoneRegex);
             if (phoneMatch) {
@@ -286,9 +309,9 @@
                 document.getElementById('client-phone').value = p;
             }
 
-            // === ОЧИСТКА ДЛЯ ФИО ===
+            // Очистка для ФИО
             let clean = original
-                .replace(phoneRegex, '')           // полностью убираем телефон
+                .replace(phoneRegex, '')           // полностью удаляем телефон
                 .replace(/телефон|номер/gi, '')
                 .replace(/личн|себе|мое|моя|личная/gi, '')
                 .trim();
