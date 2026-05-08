@@ -19,14 +19,13 @@
         .delete-btn { position: absolute; right: 0; top: 0; bottom: 0; width: 85px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; transform: translateX(100%); transition: transform 0.3s ease; }
         .entry-card.swiped .entry-content { transform: translateX(-85px); }
         .entry-card.swiped .delete-btn { transform: translateX(0); }
-        .day-group { border-radius: 16px; padding: 4px; margin-bottom: 20px; }
-        #voice-btn.recording { background: #ef4444 !important; transform: scale(1.08); }
+        .date-header { font-size: 15px; font-weight: 600; padding: 8px 12px; background: #f1f5f9; border-radius: 12px; margin-bottom: 12px; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen bg-slate-100">
     <div class="tail-container w-full flex flex-col h-screen overflow-hidden">
         
-        <!-- Закреплённый header -->
+        <!-- Фиксированный header -->
         <div class="sticky-header px-6 pt-12 pb-4 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tighter">Ежедневник</h1>
@@ -60,17 +59,23 @@
                     </label>
                 </div>
 
+                <!-- Многострочное поле для клиента -->
                 <div id="client-fields">
-                    <input id="client-name" type="text" class="w-full bg-slate-100 rounded-2xl px-5 py-4 mb-4 text-base" placeholder="ФИО клиента">
-                    <input id="client-phone" type="tel" class="w-full bg-slate-100 rounded-2xl px-5 py-4 text-base" placeholder="+7 (___) ___-__-__">
+                    <textarea id="client-info" rows="3" 
+                              class="w-full bg-slate-100 rounded-3xl px-5 py-4 text-base resize-none"
+                              placeholder="ФИО клиента&#10;Телефон"></textarea>
                 </div>
 
+                <!-- Поле для личной записи -->
                 <div id="personal-fields" class="hidden">
-                    <input id="personal-desc" type="text" class="w-full bg-slate-100 rounded-2xl px-5 py-4 text-base" placeholder="Описание">
+                    <input id="personal-desc" type="text" 
+                           class="w-full bg-slate-100 rounded-3xl px-5 py-4 text-base"
+                           placeholder="Описание">
                 </div>
 
+                <!-- Голосовой ввод -->
                 <button id="voice-btn"
-                        class="mt-6 mb-8 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-5 rounded-3xl flex items-center justify-center gap-3 font-medium text-lg"
+                        class="mt-8 mb-8 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-5 rounded-3xl flex items-center justify-center gap-3 font-medium text-lg"
                         ontouchstart="startVoiceInput(event)"
                         ontouchend="stopVoiceInput(event)"
                         onmousedown="startVoiceInput(event)"
@@ -82,15 +87,15 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="text-xs text-slate-500 block mb-1">Дата</label>
-                        <input id="entry-date" type="date" class="w-full bg-slate-100 rounded-2xl px-5 py-4">
+                        <input id="entry-date" type="date" class="w-full bg-slate-100 rounded-3xl px-5 py-4">
                     </div>
                     <div>
                         <label class="text-xs text-slate-500 block mb-1">Время</label>
-                        <input id="entry-time" type="time" class="w-full bg-slate-100 rounded-2xl px-5 py-4">
+                        <input id="entry-time" type="time" class="w-full bg-slate-100 rounded-3xl px-5 py-4">
                     </div>
                 </div>
 
-                <p id="voice-status" class="text-center text-xs text-slate-400 mt-4 h-5"></p>
+                <p id="voice-status" class="text-center text-xs text-slate-400 mt-6 h-5"></p>
             </div>
         </div>
     </div>
@@ -114,13 +119,16 @@
             container.innerHTML = '';
             const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
             let currentDate = '';
-            let isEven = true;
 
             sorted.forEach(entry => {
                 if (entry.date !== currentDate) {
                     currentDate = entry.date;
-                    isEven = !isEven;
-                    container.innerHTML += `<div class="day-group ${isEven ? 'bg-slate-50' : 'bg-white'}"><div class="px-2 py-1 text-xs font-semibold text-slate-500">${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}</div>`;
+                    container.innerHTML += `
+                        <div class="date-header flex items-center gap-2">
+                            <div class="flex-1 h-px bg-slate-300"></div>
+                            <span class="text-slate-600">${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}</span>
+                            <div class="flex-1 h-px bg-slate-300"></div>
+                        </div>`;
                 }
 
                 const barColor = entry.isPersonal ? 'bg-blue-500' : 'bg-red-500';
@@ -144,10 +152,6 @@
                         </div>
                     </div>`;
                 container.innerHTML += html;
-
-                if (sorted.indexOf(entry) < sorted.length - 1 && sorted[sorted.indexOf(entry)+1].date !== currentDate) {
-                    container.innerHTML += `</div>`;
-                }
             });
         }
 
@@ -164,8 +168,7 @@
             currentEditId = null;
             document.getElementById('modal-title').textContent = 'Новая запись';
             document.getElementById('is-personal').checked = false;
-            document.getElementById('client-name').value = '';
-            document.getElementById('client-phone').value = '';
+            document.getElementById('client-info').value = '';
             document.getElementById('personal-desc').value = '';
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('entry-date').value = today;
@@ -193,17 +196,21 @@
             if (!date || !time) return alert('Укажите дату и время');
 
             const existing = entries.find(e => e.date === date && e.time === time && e.id !== currentEditId);
-            if (existing) {
-                if (!confirm(isPersonal ? 'На это время уже есть личная запись! Сохранить всё равно?' : 'На это время уже есть запись клиента! Сохранить всё равно?')) return;
-            }
+            if (existing && !confirm(isPersonal ? 'На это время уже есть личная запись! Сохранить всё равно?' : 'На это время уже есть запись клиента! Сохранить всё равно?')) return;
 
             const entry = { 
                 id: currentEditId || Date.now().toString(36), 
                 date, time, isPersonal,
-                name: isPersonal ? '' : document.getElementById('client-name').value.trim(),
-                phone: isPersonal ? '' : document.getElementById('client-phone').value.trim(),
+                name: isPersonal ? '' : '',
+                phone: isPersonal ? '' : '',
                 description: isPersonal ? document.getElementById('personal-desc').value.trim() : '' 
             };
+
+            if (!isPersonal) {
+                const info = document.getElementById('client-info').value.trim().split('\n');
+                entry.name = info[0] ? info[0].trim() : '';
+                entry.phone = info[1] ? info[1].trim() : '';
+            }
 
             if (!isPersonal && !entry.name) return alert('Укажите ФИО клиента');
 
@@ -223,10 +230,11 @@
             document.getElementById('is-personal').checked = entry.isPersonal;
             document.getElementById('entry-date').value = entry.date;
             document.getElementById('entry-time').value = entry.time;
-            if (entry.isPersonal) document.getElementById('personal-desc').value = entry.description;
-            else {
-                document.getElementById('client-name').value = entry.name;
-                document.getElementById('client-phone').value = entry.phone;
+
+            if (entry.isPersonal) {
+                document.getElementById('personal-desc').value = entry.description;
+            } else {
+                document.getElementById('client-info').value = `${entry.name}\n${entry.phone}`;
             }
             togglePersonal();
             document.getElementById('add-modal').classList.remove('hidden'); 
@@ -280,12 +288,12 @@
             return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
 
-        // ==================== УЛУЧШЕННЫЙ ПАРСЕР (телефон больше не попадает в ФИО) ====================
+        // ==================== ПАРСЕР ====================
         function parseVoiceInput(original) {
             const status = document.getElementById('voice-status');
             const isPersonal = document.getElementById('is-personal').checked;
 
-            // 1. Ищем телефон
+            // Находим телефон
             const phoneRegex = /(\+?7|8)?\s*9\d{2}\s*\d{3}\s*\d{2}\s*\d{2}|\+?\d{11}|\d{11}/g;
             const phoneMatch = original.match(phoneRegex);
 
@@ -294,29 +302,22 @@
                 phone = phoneMatch[0].replace(/[\s().-]/g, '');
                 if (phone.startsWith('8')) phone = '+7' + phone.slice(1);
                 else if (!phone.startsWith('+7') && phone.length === 11) phone = '+7' + phone;
-                document.getElementById('client-phone').value = phone;
             }
 
-            // 2. Удаляем найденный телефон из строки
+            // Удаляем телефон из строки
             let clean = original;
-            if (phoneMatch) {
-                clean = clean.replace(phoneMatch[0], '');
-            }
-
-            // 3. Дополнительная очистка
-            clean = clean
-                .replace(/телефон|номер/gi, '')
-                .replace(/личн|себе|мое|моя|личная/gi, '')
-                .trim();
+            if (phoneMatch) clean = clean.replace(phoneMatch[0], '');
+            clean = clean.replace(/телефон|номер/gi, '').trim();
 
             if (isPersonal) {
                 document.getElementById('personal-desc').value = capitalizeName(clean) || 'Личная запись';
             } else {
-                document.getElementById('client-name').value = capitalizeName(clean);
+                const text = capitalizeName(clean) + (phone ? `\n${phone}` : '');
+                document.getElementById('client-info').value = text;
             }
 
-            status.textContent = '✓ ФИО и телефон заполнены';
-            setTimeout(() => status.textContent = '', 2000);
+            status.textContent = '✓ Заполнено';
+            setTimeout(() => status.textContent = '', 1800);
         }
 
         window.onload = loadEntries;
