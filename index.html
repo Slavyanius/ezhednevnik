@@ -69,7 +69,6 @@
                     <input id="personal-desc" type="text" class="w-full bg-slate-100 rounded-2xl px-5 py-4 text-base" placeholder="Описание">
                 </div>
 
-                <!-- Голосовой ввод -->
                 <button id="voice-btn"
                         class="mt-6 mb-8 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-5 rounded-3xl flex items-center justify-center gap-3 font-medium text-lg"
                         ontouchstart="startVoiceInput(event)"
@@ -113,20 +112,15 @@
         function renderEntries() {
             const container = document.getElementById('entries-list');
             container.innerHTML = '';
-
             const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
             let currentDate = '';
-            let isEvenDay = true;
+            let isEven = true;
 
             sorted.forEach(entry => {
                 if (entry.date !== currentDate) {
                     currentDate = entry.date;
-                    isEvenDay = !isEvenDay;
-                    container.innerHTML += `
-                        <div class="day-group ${isEvenDay ? 'bg-slate-50' : 'bg-white'}">
-                            <div class="px-2 py-1 text-xs font-semibold text-slate-500">
-                                ${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}
-                            </div>`;
+                    isEven = !isEven;
+                    container.innerHTML += `<div class="day-group ${isEven ? 'bg-slate-50' : 'bg-white'}"><div class="px-2 py-1 text-xs font-semibold text-slate-500">${new Date(entry.date).toLocaleDateString('ru-RU', {weekday:'short', day:'numeric', month:'long'})}</div>`;
                 }
 
                 const barColor = entry.isPersonal ? 'bg-blue-500' : 'bg-red-500';
@@ -149,10 +143,8 @@
                             </div>
                         </div>
                     </div>`;
-
                 container.innerHTML += html;
 
-                // Закрываем day-group если следующий день другой
                 if (sorted.indexOf(entry) < sorted.length - 1 && sorted[sorted.indexOf(entry)+1].date !== currentDate) {
                     container.innerHTML += `</div>`;
                 }
@@ -165,11 +157,7 @@
         function endSwipe(e) { if (currentCard) { const diff = startX - e.changedTouches[0].clientX; if (diff > 100) currentCard.classList.add('swiped'); else currentCard.classList.remove('swiped'); } }
 
         function deleteEntry(id) {
-            if (confirm('Удалить запись?')) { 
-                entries = entries.filter(e => e.id !== id); 
-                saveEntries(); 
-                renderEntries(); 
-            }
+            if (confirm('Удалить запись?')) { entries = entries.filter(e => e.id !== id); saveEntries(); renderEntries(); }
         }
 
         function showAddModal() {
@@ -206,9 +194,7 @@
 
             const existing = entries.find(e => e.date === date && e.time === time && e.id !== currentEditId);
             if (existing) {
-                if (!confirm(isPersonal ? 'На это время уже есть личная запись! Сохранить всё равно?' : 'На это время уже есть запись клиента! Сохранить всё равно?')) {
-                    return;
-                }
+                if (!confirm(isPersonal ? 'На это время уже есть личная запись! Сохранить всё равно?' : 'На это время уже есть запись клиента! Сохранить всё равно?')) return;
             }
 
             const entry = { 
@@ -294,24 +280,31 @@
             return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         }
 
-        // ==================== ИСПРАВЛЕННЫЙ ПАРСЕР (только ФИО + телефон) ====================
+        // ==================== УЛУЧШЕННЫЙ ПАРСЕР (телефон больше не попадает в ФИО) ====================
         function parseVoiceInput(original) {
             const status = document.getElementById('voice-status');
             const isPersonal = document.getElementById('is-personal').checked;
 
-            // Телефон
-            const phoneRegex = /(\+?7|8)?\s*9\d{2}\s*\d{3}\s*\d{2}\s*\d{2}|\d{11}|\+?\d{11}/g;
+            // 1. Ищем телефон
+            const phoneRegex = /(\+?7|8)?\s*9\d{2}\s*\d{3}\s*\d{2}\s*\d{2}|\+?\d{11}|\d{11}/g;
             const phoneMatch = original.match(phoneRegex);
+
+            let phone = '';
             if (phoneMatch) {
-                let p = phoneMatch[0].replace(/[\s().-]/g, '');
-                if (p.startsWith('8')) p = '+7' + p.slice(1);
-                else if (!p.startsWith('+7') && p.length === 11) p = '+7' + p;
-                document.getElementById('client-phone').value = p;
+                phone = phoneMatch[0].replace(/[\s().-]/g, '');
+                if (phone.startsWith('8')) phone = '+7' + phone.slice(1);
+                else if (!phone.startsWith('+7') && phone.length === 11) phone = '+7' + phone;
+                document.getElementById('client-phone').value = phone;
             }
 
-            // Очистка для ФИО
-            let clean = original
-                .replace(phoneRegex, '')           // полностью удаляем телефон
+            // 2. Удаляем найденный телефон из строки
+            let clean = original;
+            if (phoneMatch) {
+                clean = clean.replace(phoneMatch[0], '');
+            }
+
+            // 3. Дополнительная очистка
+            clean = clean
                 .replace(/телефон|номер/gi, '')
                 .replace(/личн|себе|мое|моя|личная/gi, '')
                 .trim();
